@@ -1,0 +1,18 @@
+--- a/drivers/media/usb/au0828/au0828-core.c
++++ b/drivers/media/usb/au0828/au0828-core.c
+@@ -312,6 +312,15 @@
+ 	 * pipeline.
+ 	*/
+ 	if (entity->function == MEDIA_ENT_F_DTV_DEMOD) {
++		/*
++		 * Digital-only boards (e.g. DViCO FusionHDTV7 USB) have no
++		 * analog inputs, so no tuner entity is ever registered and
++		 * there is nothing to share. Let DVB use the tuner.
++		 */
++		if (!dev->tuner) {
++			ret = 0;
++			goto end;
++		}
+ 		sink = entity;
+ 		find_source = dev->tuner;
+ 	} else {
