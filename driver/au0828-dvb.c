@@ -104,6 +104,31 @@ static void au0828_bulk_timeout(struct timer_list *t)
 	schedule_work(&dev->restart_streaming);
 }
 
+/*
+ * The FusionHDTV7 USB sometimes starts streaming with every TS sync byte
+ * replaced by one constant wrong value, while the packet framing and
+ * payload are intact. Restarting the transport does not clear it. If all
+ * packets in the buffer carry the same leading byte, restore 0x47.
+ */
+static bool au0828_repair_sync_byte(unsigned char *buf, int npkts)
+{
+	u8 sync = buf[0];
+	int i;
+
+	if (npkts < 2)
+		return false;
+
+	for (i = 1; i < npkts; i++)
+		if (buf[i * 188] != sync)
+			return false;
+
+	for (i = 0; i < npkts; i++)
+		buf[i * 188] = 0x47;
+
+	pr_info_once("repairing TS sync byte 0x%02x -> 0x47\n", sync);
+	return true;
+}
+
 /*-------------------------------------------------------------------*/
 static void urb_completion(struct urb *purb)
 {
@@ -132,7 +157,8 @@ static void urb_completion(struct urb *purb)
 	/* See if the stream is corrupted (to work around a hardware
 	   bug where the stream gets misaligned */
 	ptr = purb->transfer_buffer;
-	if (purb->actual_length > 0 && ptr[0] != 0x47) {
+	if (purb->actual_length > 0 && ptr[0] != 0x47 &&
+	    !au0828_repair_sync_byte(ptr, purb->actual_length / 188)) {
 		dprintk(1, "Need to restart streaming %02x len=%d!\n",
 			ptr[0], purb->actual_length);
 		schedule_work(&dev->restart_streaming);

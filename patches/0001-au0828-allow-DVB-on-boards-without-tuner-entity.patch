@@ -1,6 +1,8 @@
+diff --git a/drivers/media/usb/au0828/au0828-core.c b/drivers/media/usb/au0828/au0828-core.c
+index c3826b3..a9a0611 100644
 --- a/drivers/media/usb/au0828/au0828-core.c
 +++ b/drivers/media/usb/au0828/au0828-core.c
-@@ -312,6 +312,15 @@
+@@ -312,6 +312,15 @@ static int au0828_enable_source(struct media_entity *entity,
  	 * pipeline.
  	*/
  	if (entity->function == MEDIA_ENT_F_DTV_DEMOD) {
